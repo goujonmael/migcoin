@@ -1,0 +1,93 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/migcoin/.migcoin" ]; then
+	MIGCOIND_DEFAULT_DATADIR="/var/lib/migcoin/.migcoin"
+else
+	MIGCOIND_DEFAULT_DATADIR="/var/lib/migcoind"
+fi
+
+MIGCOIND_CONFIGFILE=${MIGCOIND_CONFIGFILE:-/etc/migcoin/migcoin.conf}
+MIGCOIND_PIDDIR=${MIGCOIND_PIDDIR:-/var/run/migcoind}
+MIGCOIND_PIDFILE=${MIGCOIND_PIDFILE:-${MIGCOIND_PIDDIR}/migcoind.pid}
+MIGCOIND_DATADIR=${MIGCOIND_DATADIR:-${MIGCOIND_DEFAULT_DATADIR}}
+MIGCOIND_USER=${MIGCOIND_USER:-${MIGCOIN_USER:-migcoin}}
+MIGCOIND_GROUP=${MIGCOIND_GROUP:-migcoin}
+MIGCOIND_BIN=${MIGCOIND_BIN:-/usr/bin/migcoind}
+MIGCOIND_NICE=${MIGCOIND_NICE:-${NICELEVEL:-0}}
+MIGCOIND_OPTS="${MIGCOIND_OPTS:-${MIGCOIN_OPTS}}"
+
+name="Migcoin Core Daemon"
+description="Migcoin cryptocurrency P2P network daemon"
+
+command="/usr/bin/migcoind"
+command_args="-pid=\"${MIGCOIND_PIDFILE}\" \
+		-conf=\"${MIGCOIND_CONFIGFILE}\" \
+		-datadir=\"${MIGCOIND_DATADIR}\" \
+		-daemon \
+		${MIGCOIND_OPTS}"
+
+required_files="${MIGCOIND_CONFIGFILE}"
+start_stop_daemon_args="-u ${MIGCOIND_USER} \
+			-N ${MIGCOIND_NICE} -w 2000"
+pidfile="${MIGCOIND_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${MIGCOIND_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${MIGCOIND_USER}:${MIGCOIND_GROUP}" \
+	"${MIGCOIND_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${MIGCOIND_USER}:${MIGCOIND_GROUP}" \
+	"${MIGCOIND_PIDDIR}"
+
+	checkpath -f \
+	-o "${MIGCOIND_USER}:${MIGCOIND_GROUP}" \
+	-m 0660 \
+	"${MIGCOIND_CONFIGFILE}"
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if grep -qs '^rpcuser=' "${MIGCOIND_CONFIGFILE}" && \
+		! grep -qs '^rpcpassword=' "${MIGCOIND_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run migcoind."
+		eerror "The setting must appear in ${MIGCOIND_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"Migcoin Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

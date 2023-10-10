@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+#
+#  migcoind The migcoin core server.
+#
+#
+# chkconfig: 345 80 20
+# description: migcoind
+# processname: migcoind
+#
+
+# Source function library.
+. /etc/init.d/functions
+
+# you can override defaults in /etc/sysconfig/migcoind, see below
+if [ -f /etc/sysconfig/migcoind ]; then
+        . /etc/sysconfig/migcoind
+fi
+
+RETVAL=0
+
+prog=migcoind
+# you can override the lockfile via MIGCOIND_LOCKFILE in /etc/sysconfig/migcoind
+lockfile=${MIGCOIND_LOCKFILE-/var/lock/subsys/migcoind}
+
+# migcoind defaults to /usr/bin/migcoind, override with MIGCOIND_BIN
+migcoind=${MIGCOIND_BIN-/usr/bin/migcoind}
+
+# migcoind opts default to -disablewallet, override with MIGCOIND_OPTS
+migcoind_opts=${MIGCOIND_OPTS--disablewallet}
+
+start() {
+    echo -n $"Starting $prog: "
+    daemon $DAEMONOPTS $migcoind $migcoind_opts
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    killproc $prog -t600
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    return $RETVAL
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status $prog
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage: service $prog {start|stop|status|restart}"
+        exit 1
+        ;;
+esac

@@ -1,0 +1,33 @@
+# /etc/conf.d/migcoind: config file for /etc/init.d/migcoind
+
+# Config file location
+#MIGCOIND_CONFIGFILE="/etc/migcoin/migcoin.conf"
+
+# What directory to write pidfile to?  (created and owned by $MIGCOIND_USER)
+#MIGCOIND_PIDDIR="/var/run/migcoind"
+
+# What filename to give the pidfile
+#MIGCOIND_PIDFILE="${MIGCOIND_PIDDIR}/migcoind.pid"
+
+# Where to write migcoind data (be mindful that the blockchain is large)
+#MIGCOIND_DATADIR="/var/lib/migcoind"
+
+# User and group to own migcoind process
+#MIGCOIND_USER="migcoin"
+#MIGCOIND_GROUP="migcoin"
+
+# Path to migcoind executable
+#MIGCOIND_BIN="/usr/bin/migcoind"
+
+# Nice value to run migcoind under
+#MIGCOIND_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#MIGCOIND_OPTS=""
+
+# The timeout in seconds OpenRC will wait for migcoind to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+MIGCOIND_SIGTERM_TIMEOUT=600
